@@ -285,16 +285,6 @@ public class NinePointLockView extends FrameLayout {
                 canvas.drawLine(listPoint[0], listPoint[1], touchX, touchY, linePaint);
             }
         }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-//            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-            measureWidth = (int) getMeasureSize(widthMeasureSpec, true);
-            measureHeight = (int) getMeasureSize(heightMeasureSpec, false);
-            setMeasuredDimension(measureWidth, measureHeight);
-            resultRule = Math.min(measureWidth, measureHeight); //防止布局为长方形，返回较小的变用作参考系
-            ratioScale = resultRule / 790f;
-        }
     }
 
     /**
