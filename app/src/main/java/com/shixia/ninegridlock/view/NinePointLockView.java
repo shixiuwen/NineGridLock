@@ -14,6 +14,8 @@ import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by AmosShi on 2016/11/11.
@@ -38,6 +40,7 @@ public class NinePointLockView extends FrameLayout {
     private LineView lineView;
 
     private ArrayList<Integer> list;    //用于存储绘制的路径 {横向：0，1，2，3，4，5，6，7，8}
+    private ArrayList<Integer> fingerPath = new ArrayList<>();  //临时回调的时候使用
 
     private boolean isListEmpty = true; //表示该区域是否已经连接上
 
@@ -50,6 +53,8 @@ public class NinePointLockView extends FrameLayout {
     private int measureWidth, measureHeight;
 
     private Float[][] localPoint;   //绘制的连接线坐标点位置
+
+    private boolean isRightPath = true;
 
     public NinePointLockView(Context context) {
 //        super(context);
@@ -82,17 +87,44 @@ public class NinePointLockView extends FrameLayout {
         touchY = event.getY();
         lineView.invalidate();
 
+        boolean isRight = true;
+
         if (event.getAction() == MotionEvent.ACTION_UP) {
             ArrayList<Integer> gesturePathList = getGesturePath();//手指抬起时获取绘制的路径
             if (onDrawLockPathListener != null) {
-                onDrawLockPathListener.onDrawPathFinish(gesturePathList);
+                isRight = onDrawLockPathListener.onDrawPathFinish(gesturePathList);
             }
-            list.clear();
-            isListEmpty = true;
-            pointView.invalidate();
-            lineView.invalidate();
+            if (isRight) {
+                showPathAfterFingerUp(1000, true);
+            } else {
+                showPathAfterFingerUp(1000, false);
+            }
         }
         return true;
+    }
+
+    /**
+     * 手指抬起后将路径显示一段指定的时长，如果路径不正确（表示不匹配），则将路径显示为红色错误状态
+     *
+     * @param duration 错误路径显示时长，ms
+     * @param isRight  路径是否错误
+     */
+    private void showPathAfterFingerUp(long duration, boolean isRight) {
+        isRightPath = isRight;
+        pointView.invalidate();
+        lineView.invalidate();
+        Timer timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                isRightPath = true;
+                isListEmpty = true;
+                list.clear();
+                pointView.postInvalidate();
+                lineView.postInvalidate();
+            }
+        };
+        timer.schedule(timerTask, duration);
     }
 
     /**
@@ -221,7 +253,11 @@ public class NinePointLockView extends FrameLayout {
             canvas.translate(translateX, translateY);
             //已选中的点绘制为其他颜色（红色）
             if (list.contains(area)) {
-                pointPaint.setColor(Color.argb(255, 75, 217, 191));
+                if (!isRightPath) {
+                    pointPaint.setColor(Color.argb(255, 255, 0, 0));
+                } else {
+                    pointPaint.setColor(Color.argb(255, 75, 217, 191));
+                }
 //                pointPaint.setColor(Color.RED);
                 pointPaint.setStyle(Paint.Style.FILL);
                 canvas.drawCircle(0, 0, 27 * ratioScale, pointPaint);
@@ -270,6 +306,10 @@ public class NinePointLockView extends FrameLayout {
 
             linePaint.setStrokeWidth(8 * ratioScale);    //设置笔触宽度，不能在onDraw之前设置，否则resultRule为初始化值(可以在post中初始化)
 
+            if (!isRightPath) {
+                linePaint.setColor(Color.argb(255, 255, 0, 0));
+            }
+
             //从list中获取所需要连接的区域，最后一个区域和手指所在点相连接
             int size = list.size();
             //每一个area都对应一个坐标点
@@ -281,9 +321,14 @@ public class NinePointLockView extends FrameLayout {
                 }
             }
             if (size >= 2) {
+                if (!isRightPath) {
+                    return;
+                }
                 Float[] listPoint = localPoint[list.get(list.size() - 2)];    //拿到最后一个点连接坐标，从改点画到手指触点的连接
                 canvas.drawLine(listPoint[0], listPoint[1], touchX, touchY, linePaint);
             }
+            //恢复画笔默认颜色
+            linePaint.setColor(Color.argb(255, 75, 217, 191));
         }
     }
 
@@ -296,8 +341,10 @@ public class NinePointLockView extends FrameLayout {
         if (list.size() <= 4) {
             return null;    //必须连接4个点密码才生效
         }
-        list.remove(list.size() - 1);   //去除最后一个滑动中的手指按压点
-        return list;
+        fingerPath.clear();
+        fingerPath.addAll(list);
+        fingerPath.remove(fingerPath.size() - 1);     //去除最后一个滑动中的手指按压点
+        return fingerPath;
     }
 
     private float getMeasureSize(int length, boolean isWidth) {
@@ -334,8 +381,15 @@ public class NinePointLockView extends FrameLayout {
         /**
          * 绘制路径结束后的回调函数，传入的参数可能为空，表示连接的点数小于4个
          *
-         * @param pathList 路径值List :{ 横向：0,1,2,3,4,5,6,7,8 }
+         * @param pathList 路径值List :{ 横向：
+         *                 0,1,2,
+         *                 3,4,5,
+         *                 6,7,8
+         *                 }
+         * @return 绘制的路径是否是正确路径，正确与否同本地记录的路径匹配，返回true将显示
+         * 结果为绿色路径，表示匹配，返回false将显示红色路径，表示路径同本地的不匹配，如果是
+         * 新录入路径，直接返回true即可
          */
-        void onDrawPathFinish(List<Integer> pathList);
+        boolean onDrawPathFinish(List<Integer> pathList);
     }
 }
