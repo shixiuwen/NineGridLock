@@ -106,8 +106,8 @@ public class NinePointLockView extends FrameLayout {
     /**
      * 手指抬起后将路径显示一段指定的时长，如果路径不正确（表示不匹配），则将路径显示为红色错误状态
      *
-     * @param duration 错误路径显示时长，ms
-     * @param isRight  路径是否错误
+     * @param duration 路径显示时长，ms
+     * @param isRight  路径是否错误，如果路径错误，则显示为红色
      */
     private void showPathAfterFingerUp(long duration, boolean isRight) {
         isRightPath = isRight;
