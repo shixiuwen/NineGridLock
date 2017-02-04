@@ -55,6 +55,7 @@ public class NinePointLockView extends FrameLayout {
     private Float[][] localPoint;   //绘制的连接线坐标点位置
 
     private boolean isRightPath = true;
+    private static boolean isFingerUp = true;   //之后手指抬起的时候才主动使用timer清除路径
 
     public NinePointLockView(Context context) {
 //        super(context);
@@ -75,6 +76,14 @@ public class NinePointLockView extends FrameLayout {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 //        return super.onTouchEvent(event);
+        if (event.getAction() == MotionEvent.ACTION_DOWN && list.size() > 0) {
+            list.clear();
+            isRightPath = true;
+            isListEmpty = true;
+            fingerPath.clear();
+            isFingerUp = false;
+        }
+
         int area = calculateArea(event.getX(), event.getY());
         if (area != -1) {   //如果当前手指按在了某个区域，则刷新控件开始画线
             if (!list.contains(area)) { //点的状态只刷新一次
@@ -117,11 +126,14 @@ public class NinePointLockView extends FrameLayout {
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                isRightPath = true;
-                isListEmpty = true;
-                list.clear();
-                pointView.postInvalidate();
-                lineView.postInvalidate();
+                if (isFingerUp) {
+                    isRightPath = true;
+                    isListEmpty = true;
+                    list.clear();
+                    pointView.postInvalidate();
+                    lineView.postInvalidate();
+                }
+                isFingerUp = true;
             }
         };
         timer.schedule(timerTask, duration);

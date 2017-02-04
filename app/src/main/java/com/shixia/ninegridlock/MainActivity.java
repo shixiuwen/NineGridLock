@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
                         return true;
                     } else {        //本地存储了密码，进行匹配
                         if (!TextUtils.equals(password, builder.toString())) {  //密码匹配失败，显示错误路径，本地密码置空
+                            Toast.makeText(MainActivity.this, "密码错误，已清空密码，请重置，当前路径：" + builder.toString(), Toast.LENGTH_SHORT).show();
                             password = null;
                             return false;
                         } else {    //密码匹配成功
