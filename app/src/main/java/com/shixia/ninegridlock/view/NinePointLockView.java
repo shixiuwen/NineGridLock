@@ -55,6 +55,7 @@ public class NinePointLockView extends FrameLayout {
     private Float[][] localPoint;   //绘制的连接线坐标点位置
 
     private boolean isRightPath = true;
+    private static boolean isFingerUp = true;   //之后手指抬起的时候才主动使用timer清除路径
 
     public NinePointLockView(Context context) {
 //        super(context);
@@ -75,6 +76,14 @@ public class NinePointLockView extends FrameLayout {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 //        return super.onTouchEvent(event);
+        if (event.getAction() == MotionEvent.ACTION_DOWN && list.size() > 0) {
+            list.clear();
+            isRightPath = true;
+            isListEmpty = true;
+            fingerPath.clear();
+            isFingerUp = false;
+        }
+
         int area = calculateArea(event.getX(), event.getY());
         if (area != -1) {   //如果当前手指按在了某个区域，则刷新控件开始画线
             if (!list.contains(area)) { //点的状态只刷新一次
@@ -106,8 +115,8 @@ public class NinePointLockView extends FrameLayout {
     /**
      * 手指抬起后将路径显示一段指定的时长，如果路径不正确（表示不匹配），则将路径显示为红色错误状态
      *
-     * @param duration 错误路径显示时长，ms
-     * @param isRight  路径是否错误
+     * @param duration 路径显示时长，ms
+     * @param isRight  路径是否错误，如果路径错误，则显示为红色
      */
     private void showPathAfterFingerUp(long duration, boolean isRight) {
         isRightPath = isRight;
@@ -117,11 +126,14 @@ public class NinePointLockView extends FrameLayout {
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                isRightPath = true;
-                isListEmpty = true;
-                list.clear();
-                pointView.postInvalidate();
-                lineView.postInvalidate();
+                if (isFingerUp) {
+                    isRightPath = true;
+                    isListEmpty = true;
+                    list.clear();
+                    pointView.postInvalidate();
+                    lineView.postInvalidate();
+                }
+                isFingerUp = true;
             }
         };
         timer.schedule(timerTask, duration);
